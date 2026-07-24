@@ -2,7 +2,7 @@
 
 ![React Native](https://img.shields.io/badge/React_Native-20232A?style=for-the-badge&logo=react&logoColor=61DAFB) ![Expo](https://img.shields.io/badge/Expo-1B1F23?style=for-the-badge&logo=expo&logoColor=white) ![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white) ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)
 
-Crave is a minimalist, full-stack food ordering application designed with a strict high-contrast editorial aesthetic. Built entirely from scratch, it features a fluid React Native frontend natively animated via Reanimated, backed by a robust transactional Node.js/Express API and a managed PostgreSQL database.
+Crave is a minimalist, full-stack food ordering application designed with a strict high-contrast editorial aesthetic. Engineered entirely from scratch as a collaborative two-developer pair project, it features a fluid React Native frontend natively animated via Reanimated, backed by a robust transactional Node.js/Express API and a managed PostgreSQL database.
 
 The current architecture prioritizes rapid execution, end-to-end functionality, and raw SQL performance, with a definitive roadmap mapped out for enterprise-level scaling.
 
