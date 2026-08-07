@@ -13,15 +13,15 @@ The current architecture prioritizes rapid execution, end-to-end functionality, 
 **Frontend Architecture:**
 * **Framework:** React Native managed by Expo
 * **Navigation:** Expo Router
-* **State Management:** Native React Context API
-* **Animations:** React Native Reanimated
-* **Design System:** Custom Brutalist/Editorial UI (Ink Black, Alabaster, Signal Red)
+* **State Management:** Native React Context API (`AuthContext`, `CartContext`, `MenuContext`)
+* **3D Graphics & WebGL:** Three.js via `react-native-webview` for hardware-accelerated 3D live map rendering
+* **Design System:** Custom Brutalist/Editorial UI (Ink Black, Alabaster, Terracotta `#C45D4A`)
 
 **Backend Architecture:**
 * **Runtime:** Node.js with Express.js
 * **Database:** PostgreSQL (Hosted via Supabase)
-* **Data Access:** Native `pg` connection pool (Raw SQL for maximum performance)
-* **Security:** JWT (JSON Web Tokens) Authentication & bcrypt password hashing
+* **Caching & Auth:** In-memory menu caching & JWT bearer token middleware
+* **Data Access:** Native `pg` connection pool with PostgreSQL JSON aggregation (`json_agg`, `json_build_object`)
 * **Deployment:** Render PaaS
 
 ---
@@ -29,16 +29,18 @@ The current architecture prioritizes rapid execution, end-to-end functionality, 
 ## Current Implementation
 
 ### Core Systems
-- [x] **Secure Authentication:** End-to-end JWT-based login and registration system.
+- [x] **Secure Authentication:** End-to-end JWT-based login and registration system with auth middleware.
+- [x] **In-Memory Caching:** Server-side menu caching for fast responses and low database load.
 - [x] **Dynamic Catalog:** Real-time menu fetching mapped directly from the cloud database.
-- [x] **Global State Cart:** Lightweight native context provider handling cart modifications without prop-drilling.
+- [x] **Global State Cart:** Per-item +/- steppers, swipe-to-delete gestures, and lightweight context providers.
 - [x] **Transactional Checkout:** Atomic SQL transactions (`BEGIN`, `COMMIT`, `ROLLBACK`) ensuring order data and order items write concurrently without corruption.
-- [x] **Historical Ledger:** Dynamic user-specific order history fetching.
+- [x] **Itemized Historical Ledger:** Enriched order cards displaying complete item breakdowns, line subtotals, and live status badges.
+- [x] **3D Live Delivery Tracking:** Interactive 3D low-poly city map with a delivery bike & cyclist courier model, Dijkstra minimum-distance shortest-path routing, destination randomization, and synchronized database status updates.
 
 ### UI / UX
-- [x] **Editorial Design Language:** High-contrast, typography-focused interface avoiding gradients and soft shadows.
-- [x] **Mounting Animations:** Subtle staggered fade-ins utilizing Reanimated for high-fidelity user feedback.
-- [x] **Dynamic Calculations:** Real-time basket tallying and state reflection.
+- [x] **Editorial Design Language:** Minimalist layout with sharp ALL-CAPS typography, terracotta accents, and zero frame-drops.
+- [x] **Mounting Animations:** Subtle staggered fade-ins and interactive gestures for high-fidelity user feedback.
+- [x] **Dynamic Calculations:** Real-time basket tallying, live telemetry (distance, speed, street, ETA), and status updates.
 
 ---
 
