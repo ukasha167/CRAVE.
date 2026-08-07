@@ -27,6 +27,7 @@ export default function RootLayout() {
               <Stack.Screen name="cart" />
               <Stack.Screen name="success" options={{ animation: 'fade' }} />
               <Stack.Screen name="history" />
+              <Stack.Screen name="track" />
             </Stack>
           </CartProvider>
         </MenuProvider>
