@@ -204,5 +204,26 @@ app.get('/api/orders/:id', verifyToken, async (req, res) => {
   }
 });
 
+// PATCH /api/orders/:id/status
+app.patch('/api/orders/:id/status', verifyToken, async (req, res) => {
+  try {
+    const { status } = req.body;
+    if (!status) {
+      return res.status(400).json({ error: 'Status is required' });
+    }
+    const result = await pool.query(
+      'UPDATE orders SET status = $1 WHERE id = $2 RETURNING id, status',
+      [status, req.params.id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+    res.status(200).json({ message: 'Order status updated', order: result.rows[0] });
+  } catch (error) {
+    console.error('Failed to update order status:', error);
+    res.status(500).json({ error: 'Failed to update order status' });
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
