@@ -130,12 +130,77 @@ app.post('/api/orders', verifyToken, async (req, res) => {
 app.get('/api/orders/user/:id', verifyToken, async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT * FROM orders WHERE user_id = $1 ORDER BY created_at DESC',
+      `SELECT 
+        o.id,
+        o.user_id,
+        o.total_amount,
+        o.status,
+        o.created_at,
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'id', oi.id,
+              'food_item_id', oi.food_item_id,
+              'name', f.name,
+              'quantity', oi.quantity,
+              'price_at_purchase', oi.price_at_purchase,
+              'image_url', f.image_url
+            ) ORDER BY oi.id ASC
+          ) FILTER (WHERE oi.id IS NOT NULL),
+          '[]'
+        ) AS items
+      FROM orders o
+      LEFT JOIN order_items oi ON o.id = oi.order_id
+      LEFT JOIN food_items f ON oi.food_item_id = f.id
+      WHERE o.user_id = $1
+      GROUP BY o.id
+      ORDER BY o.created_at DESC`,
       [req.params.id]
     );
     res.status(200).json(result.rows);
   } catch (error) {
+    console.error('Failed to fetch order history:', error);
     res.status(500).json({ error: 'Failed to fetch order history' });
+  }
+});
+
+// GET /api/orders/:id
+app.get('/api/orders/:id', verifyToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT 
+        o.id,
+        o.user_id,
+        o.total_amount,
+        o.status,
+        o.created_at,
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'id', oi.id,
+              'food_item_id', oi.food_item_id,
+              'name', f.name,
+              'quantity', oi.quantity,
+              'price_at_purchase', oi.price_at_purchase,
+              'image_url', f.image_url
+            ) ORDER BY oi.id ASC
+          ) FILTER (WHERE oi.id IS NOT NULL),
+          '[]'
+        ) AS items
+      FROM orders o
+      LEFT JOIN order_items oi ON o.id = oi.order_id
+      LEFT JOIN food_items f ON oi.food_item_id = f.id
+      WHERE o.id = $1
+      GROUP BY o.id`,
+      [req.params.id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+    res.status(200).json(result.rows[0]);
+  } catch (error) {
+    console.error('Failed to fetch order:', error);
+    res.status(500).json({ error: 'Failed to fetch order' });
   }
 });
 
