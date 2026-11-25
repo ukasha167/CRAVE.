@@ -29,7 +29,7 @@ export default function CartScreen() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${user.token}`,
         },
-        body: JSON.stringify({ user_id: user.id, items: cart, total_amount: cartTotal }),
+        body: JSON.stringify({ items: cart.map(({ id, quantity }) => ({ id, quantity })) }),
       });
 
       if (!response.ok) {

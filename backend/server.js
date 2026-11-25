@@ -99,23 +99,53 @@ app.get('/api/menu', async (req, res) => {
 });
 
 // POST /api/orders
+// The client sends only food item ids and quantities. The user comes from the
+// JWT and every price comes from food_items, so a client can't set either.
 app.post('/api/orders', verifyToken, async (req, res) => {
-  const { user_id, total_amount, items } = req.body;
+  const items = Array.isArray(req.body?.items) ? req.body.items : [];
+  const quantities = new Map();
+  for (const item of items) {
+    const id = Number(item?.id);
+    const quantity = Number(item?.quantity);
+    if (!Number.isInteger(id) || !Number.isInteger(quantity) || quantity < 1 || quantity > 99) {
+      return res.status(400).json({ error: 'Each item needs a valid id and a quantity from 1 to 99' });
+    }
+    quantities.set(id, (quantities.get(id) || 0) + quantity);
+  }
+  if (quantities.size === 0) {
+    return res.status(400).json({ error: 'Order has no items' });
+  }
+
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+    const ids = [...quantities.keys()];
+    const priced = await client.query(
+      'SELECT id, price FROM food_items WHERE id = ANY($1::int[])',
+      [ids]
+    );
+    if (priced.rows.length !== ids.length) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'Order contains an unknown item' });
+    }
+
+    // Sum in integer cents; DECIMAL comes back from pg as a string.
+    let totalCents = 0;
+    for (const row of priced.rows) {
+      totalCents += Math.round(Number(row.price) * 100) * quantities.get(row.id);
+    }
+
     const orderResult = await client.query(
       'INSERT INTO orders (user_id, total_amount) VALUES ($1, $2) RETURNING id',
-      [user_id, total_amount]
+      [req.user.id, (totalCents / 100).toFixed(2)]
     );
     const orderId = orderResult.rows[0].id;
-    const itemInsertPromises = items.map(item =>
-      client.query(
+    for (const row of priced.rows) {
+      await client.query(
         'INSERT INTO order_items (order_id, food_item_id, quantity, price_at_purchase) VALUES ($1, $2, $3, $4)',
-        [orderId, item.id, item.quantity, item.price]
-      )
-    );
-    await Promise.all(itemInsertPromises);
+        [orderId, row.id, quantities.get(row.id), row.price]
+      );
+    }
     await client.query('COMMIT');
     res.status(201).json({ message: 'Order placed successfully', orderId });
   } catch (error) {
@@ -128,6 +158,9 @@ app.post('/api/orders', verifyToken, async (req, res) => {
 
 // GET /api/orders/user/:id
 app.get('/api/orders/user/:id', verifyToken, async (req, res) => {
+  if (String(req.params.id) !== String(req.user.id)) {
+    return res.status(403).json({ error: 'You can only view your own orders' });
+  }
   try {
     const result = await pool.query(
       `SELECT 
@@ -190,9 +223,9 @@ app.get('/api/orders/:id', verifyToken, async (req, res) => {
       FROM orders o
       LEFT JOIN order_items oi ON o.id = oi.order_id
       LEFT JOIN food_items f ON oi.food_item_id = f.id
-      WHERE o.id = $1
+      WHERE o.id = $1 AND o.user_id = $2
       GROUP BY o.id`,
-      [req.params.id]
+      [req.params.id, req.user.id]
     );
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Order not found' });
@@ -212,8 +245,8 @@ app.patch('/api/orders/:id/status', verifyToken, async (req, res) => {
       return res.status(400).json({ error: 'Status is required' });
     }
     const result = await pool.query(
-      'UPDATE orders SET status = $1 WHERE id = $2 RETURNING id, status',
-      [status, req.params.id]
+      'UPDATE orders SET status = $1 WHERE id = $2 AND user_id = $3 RETURNING id, status',
+      [status, req.params.id, req.user.id]
     );
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Order not found' });
